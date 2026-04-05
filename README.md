@@ -131,10 +131,10 @@ F -> +TF | e
 
 ##  Author
 
-* Sai Teja
-* Aditya
-* Veeraj
-* Rajshekar
+* [Sai Teja](https://github.com/Saiteja-developer)
+* [Aditya](https://github.com/Aditya0265)
+* [Veeraj](https://github.com/vijay12968)
+* [Rajshekar](https://github.com/Chinnajadi)
 
 ---
 
