@@ -1,0 +1,6 @@
+services:
+  grammar:
+    build: .
+    container_name: grammar_optimizer
+    stdin_open: true   # important
+    tty: true          # important
