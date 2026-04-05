@@ -2,29 +2,28 @@
 
 ##  Project Overview
 
-The **Automated Grammar Optimizer** is a command-line tool written in **C** that transforms a Context-Free Grammar (CFG) into a form suitable for **top-down parsers** such as LL(1) and recursive-descent parsers.
+The **Automated Grammar Optimizer** is a command-line tool developed in **C** that transforms a Context-Free Grammar (CFG) into a form suitable for **top-down parsers** such as LL(1) and recursive-descent parsers.
 
-It automatically:
+It detects and eliminates:
 
-* Eliminates **Direct Left Recursion**
-* Applies **Left Factoring**
-* Converts grammar into a **parser-friendly format**
+* Left Recursion
+* Common prefixes (Left Factoring)
 
 ---
 
 ##  Objectives
 
-* Avoid infinite recursion in parsers
+* Prevent infinite recursion in parsers
 * Reduce ambiguity in grammar
-* Provide a clean and optimized CFG
+* Convert CFG into parser-friendly format
 
 ---
 
 ##  Technologies Used
 
-* **C Programming Language**
-* **Docker** (for containerized execution)
-* **GCC Compiler (inside container)**
+* C Programming Language
+* Docker (lightweight Alpine container)
+* GCC Compiler
 
 ---
 
@@ -33,23 +32,23 @@ It automatically:
 ```
 grammar-optimizer/
 │
-├── main.c              # Core implementation
-├── Dockerfile          # Container setup
-├── docker-compose.yml  # Optional container orchestration
-└── README.md           # Project documentation
+├── main.c
+├── input.txt
+├── Dockerfile
+└── README.md
 ```
 
 ---
 
-##  How to Run (Using Docker)
+##  How to Run
 
-### 1. Build the Docker Image
+### 1. Build Docker Image
 
 ```
 docker build -t grammar .
 ```
 
-### 2. Run the Program (Interactive Mode)
+### 2. Run Program
 
 ```
 docker run -it grammar
@@ -57,84 +56,94 @@ docker run -it grammar
 
 ---
 
-##  Sample Input
+##  Input Methods
+
+###  Option 1: Manual Input
+
+* Add grammar using menu
+* Suitable for small examples and demo
+
+###  Option 2: File Input
+
+* Load grammar from `input.txt`
+
+Example:
 
 ```
-Enter number of rules:
-1
-
-Enter Non-Terminal (e.g., E):
-E
-
-Enter number of productions:
-2
-
-Production 1:
-E+T
-
-Production 2:
-T
+E->E+T|T
+T->T*F|F
+F->(E)|i
 ```
 
 ---
 
 ##  Sample Output
 
-```
---- Original Grammar ---
-E -> E+T | T
+### Input:
 
---- Optimized Grammar ---
-E -> TF
-F -> +TF | e
+```
+E -> E+T | T
+T -> T*F | F
+```
+
+### Output:
+
+```
+E -> T E'
+E' -> +T E' | e
+T -> F T'
+T' -> *F T' | e
 ```
 
 ---
 
-##  Features (Current Version)
+##  Features
 
-* Accepts grammar input at runtime
-* Eliminates **Direct Left Recursion**
-* Performs **Basic Left Factoring**
-* Runs inside Docker (no local setup required)
-* Lightweight container using Alpine Linux
+✔ Menu-driven interface
+✔ Runtime grammar input
+✔ File-based input support
+✔ Left Recursion elimination
+✔ Left Factoring
+✔ Validation (duplicate rules, invalid symbols)
+✔ Dockerized execution (no local setup)
+✔ Lightweight container
 
 ---
 
 ##  Limitations
 
-* Supports only **single-character non-terminals**
-* Handles only **direct left recursion**
-* Left factoring is basic (common prefix detection)
-* Naming of new variables is simplified (not using primes like E')
+* Supports only direct left recursion
+* Basic left factoring (single prefix level)
+* Limited grammar size (fixed arrays)
 
 ---
 
 ##  Concepts Used
 
 * Context-Free Grammar (CFG)
-* Left Recursion Removal Algorithm
-* Left Factoring Technique
-* Compiler Design (Top-down parsing)
+* Compiler Design
+* LL(1) Parsing Concepts
+* Left Recursion Removal
+* Left Factoring
 
 ---
 
 ##  Future Enhancements
 
-* Menu-driven interface
-* File input support
-* Better naming conventions (E → E')
 * Indirect left recursion removal
-* Grammar validation
+* Multi-character symbol support
+* GUI / Web interface
+* Step-by-step transformation visualization
 
 ---
 
+
 ##  Author
 
-* Sai Teja
-* Aditya
-* Veeraj
-* Rajshekar
+* [Sai Teja](https://github.com/Saiteja-developer)
+* [Aditya](https://github.com/Aditya0265)
+* [Veeraj](https://github.com/vijay12968)
+* [Rajshekar](https://github.com/Chinnajadi)
 
 ---
 

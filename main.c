@@ -1,54 +1,147 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <ctype.h>
 
 #define MAX_RULES 10
 #define MAX_PROD 10
 #define MAX_LEN 50
 
 typedef struct {
-    char lhs;
+    char lhs[10];                      // supports E'
     char rhs[MAX_PROD][MAX_LEN];
     int count;
 } Rule;
 
 Rule grammar[MAX_RULES];
 int ruleCount = 0;
+int optimized = 0;
 
-// Remove newline
+/* ----------- UTIL ----------- */
+
 void clean(char *str) {
     str[strcspn(str, "\n")] = 0;
 }
 
-// Add rule (safe input)
+int isValidNonTerminal(char *str) {
+    return isupper(str[0]);
+}
+
+int ruleExists(char *lhs) {
+    for (int i = 0; i < ruleCount; i++) {
+        if (strcmp(grammar[i].lhs, lhs) == 0)
+            return 1;
+    }
+    return 0;
+}
+
+/* Create E' */
+void makePrime(char *base, char *result) {
+    sprintf(result, "%s'", base);
+}
+
+/* ----------- ADD RULE ----------- */
+
 void addRule() {
+    if (ruleCount >= MAX_RULES) {
+        printf("Max rules reached!\n");
+        return;
+    }
+
     char input[MAX_LEN];
 
-    printf("\nEnter Non-Terminal (e.g., E): ");
-    fflush(stdout);
+    printf("\nEnter Non-Terminal (A-Z): ");
     fgets(input, MAX_LEN, stdin);
-    grammar[ruleCount].lhs = input[0];
+    clean(input);
+
+    if (!isValidNonTerminal(input)) {
+        printf("Invalid non-terminal!\n");
+        return;
+    }
+
+    if (ruleExists(input)) {
+        printf("Rule already exists!\n");
+        return;
+    }
+
+    strcpy(grammar[ruleCount].lhs, input);
 
     printf("Enter number of productions: ");
-    fflush(stdout);
     fgets(input, MAX_LEN, stdin);
-    grammar[ruleCount].count = atoi(input);
+    int count = atoi(input);
 
-    for (int i = 0; i < grammar[ruleCount].count; i++) {
+    if (count <= 0 || count > MAX_PROD) {
+        printf("Invalid production count!\n");
+        return;
+    }
+
+    grammar[ruleCount].count = count;
+
+    for (int i = 0; i < count; i++) {
         printf("Production %d: ", i + 1);
-        fflush(stdout);
         fgets(grammar[ruleCount].rhs[i], MAX_LEN, stdin);
         clean(grammar[ruleCount].rhs[i]);
     }
 
     ruleCount++;
+    optimized = 0;
+    printf("Rule added!\n");
 }
 
-// Print grammar
+/* ----------- FILE INPUT ----------- */
+
+void loadFromFile() {
+    ruleCount = 0;
+    optimized = 0;
+    FILE *fp = fopen("input.txt", "r");
+
+    if (!fp) {
+        printf("Error opening file!\n");
+        return;
+    }
+
+    char line[MAX_LEN];
+
+    while (fgets(line, MAX_LEN, fp)) {
+        clean(line);
+
+        char lhs[10];
+        sscanf(line, "%[^-]->", lhs);
+
+        if (!isValidNonTerminal(lhs) || ruleExists(lhs))
+            continue;
+
+        strcpy(grammar[ruleCount].lhs, lhs);
+
+        char *rhs = strstr(line, "->") + 2;
+        char *token = strtok(rhs, "|");
+
+        int i = 0;
+        while (token != NULL) {
+            strcpy(grammar[ruleCount].rhs[i++], token);
+            token = strtok(NULL, "|");
+        }
+
+        grammar[ruleCount].count = i;
+        ruleCount++;
+    }
+
+    fclose(fp);
+    optimized = 0;
+    printf("Grammar loaded!\n");
+}
+
+/* ----------- PRINT ----------- */
+
 void printGrammar() {
+    if (ruleCount == 0) {
+        printf("No grammar available!\n");
+        return;
+    }
+
     printf("\nGrammar:\n");
     for (int i = 0; i < ruleCount; i++) {
-        printf("%c -> ", grammar[i].lhs);
+        printf("%s -> ", grammar[i].lhs);
         for (int j = 0; j < grammar[i].count; j++) {
             printf("%s", grammar[i].rhs[j]);
             if (j != grammar[i].count - 1)
@@ -58,37 +151,43 @@ void printGrammar() {
     }
 }
 
-// Left recursion removal
+/* ----------- LEFT RECURSION (CORRECT) ----------- */
+
 void removeLeftRecursion() {
-    for (int i = 0; i < ruleCount; i++) {
-        char A = grammar[i].lhs;
+    int initialCount = ruleCount;
+
+    for (int i = 0; i < initialCount; i++) {
+        char A[10];
+        strcpy(A, grammar[i].lhs);
 
         char alpha[MAX_PROD][MAX_LEN];
         char beta[MAX_PROD][MAX_LEN];
         int a = 0, b = 0;
 
         for (int j = 0; j < grammar[i].count; j++) {
-            if (grammar[i].rhs[j][0] == A) {
-                strcpy(alpha[a++], grammar[i].rhs[j] + 1);
+            if (strncmp(grammar[i].rhs[j], A, strlen(A)) == 0) {
+                strcpy(alpha[a++], grammar[i].rhs[j] + strlen(A));
             } else {
                 strcpy(beta[b++], grammar[i].rhs[j]);
             }
         }
 
         if (a > 0) {
-            char newLHS = A + 1;
+            char Aprime[10];
+            makePrime(A, Aprime);
 
+            // A -> β A'
             grammar[i].count = 0;
-
             for (int j = 0; j < b; j++) {
-                sprintf(grammar[i].rhs[grammar[i].count++], "%s%c", beta[j], newLHS);
+                sprintf(grammar[i].rhs[grammar[i].count++], "%s%s", beta[j], Aprime);
             }
 
-            grammar[ruleCount].lhs = newLHS;
+            // A' rule
+            strcpy(grammar[ruleCount].lhs, Aprime);
             grammar[ruleCount].count = 0;
 
             for (int j = 0; j < a; j++) {
-                sprintf(grammar[ruleCount].rhs[grammar[ruleCount].count++], "%s%c", alpha[j], newLHS);
+                sprintf(grammar[ruleCount].rhs[grammar[ruleCount].count++], "%s%s", alpha[j], Aprime);
             }
 
             strcpy(grammar[ruleCount].rhs[grammar[ruleCount].count++], "e");
@@ -97,9 +196,12 @@ void removeLeftRecursion() {
     }
 }
 
-// Left factoring
+/* ----------- LEFT FACTORING ----------- */
+
 void leftFactoring() {
-    for (int i = 0; i < ruleCount; i++) {
+    int initialCount = ruleCount;
+
+    for (int i = 0; i < initialCount; i++) {
         if (grammar[i].count < 2) continue;
 
         char prefix = grammar[i].rhs[0][0];
@@ -113,10 +215,11 @@ void leftFactoring() {
         }
 
         if (same) {
-            char newLHS = grammar[i].lhs + 2;
+            char Aprime[10];
+            makePrime(grammar[i].lhs, Aprime);
 
             Rule newRule;
-            newRule.lhs = newLHS;
+            strcpy(newRule.lhs, Aprime);
             newRule.count = 0;
 
             for (int j = 0; j < grammar[i].count; j++) {
@@ -124,37 +227,70 @@ void leftFactoring() {
             }
 
             grammar[i].count = 1;
-            sprintf(grammar[i].rhs[0], "%c%c", prefix, newLHS);
+            sprintf(grammar[i].rhs[0], "%c%s", prefix, Aprime);
 
             grammar[ruleCount++] = newRule;
         }
     }
 }
 
-int main() {
-    char input[MAX_LEN];
-    int n;
+/* ----------- OPTIMIZE ----------- */
 
-    printf("===== Grammar Optimizer =====\n");
-
-    printf("Enter number of rules: \n> ");
-    fflush(stdout);
-    fgets(input, MAX_LEN, stdin);
-
-    n = atoi(input);
-
-    for (int i = 0; i < n; i++) {
-        addRule();
+void optimizeGrammar() {
+    if (ruleCount == 0) {
+        printf("No grammar to optimize!\n");
+        return;
     }
 
-    printf("\n--- Original Grammar ---");
+    if (optimized) {
+        printf("Already optimized!\n");
+        return;
+    }
+
+    printf("\n--- Original Grammar ---\n");
     printGrammar();
 
     removeLeftRecursion();
     leftFactoring();
 
-    printf("\n--- Optimized Grammar ---");
-    printGrammar();
+    optimized = 1;
 
+    printf("\n--- Optimized Grammar ---\n");
+    printGrammar();
+}
+
+/* ----------- MENU ----------- */
+
+void menu() {
+    char input[MAX_LEN];
+    int choice;
+
+    while (1) {
+        printf("\n===== Grammar Optimizer =====\n");
+        printf("1. Add Grammar\n");
+        printf("2. Load from File\n");
+        printf("3. Show Grammar\n");
+        printf("4. Optimize Grammar\n");
+        printf("5. Exit\n");
+        printf("Enter choice: ");
+
+        fgets(input, MAX_LEN, stdin);
+        choice = atoi(input);
+
+        switch (choice) {
+            case 1: addRule(); break;
+            case 2: loadFromFile(); break;
+            case 3: printGrammar(); break;
+            case 4: optimizeGrammar(); break;
+            case 5: exit(0);
+            default: printf("Invalid choice!\n");
+        }
+    }
+}
+
+/* ----------- MAIN ----------- */
+
+int main() {
+    menu();
     return 0;
 }

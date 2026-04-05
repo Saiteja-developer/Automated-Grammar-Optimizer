@@ -6,6 +6,7 @@ RUN apk add --no-cache build-base
 WORKDIR /app
 
 COPY main.c .
+COPY input.txt .
 
 RUN gcc main.c -o grammar && strip grammar
 
